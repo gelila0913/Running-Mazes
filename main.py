@@ -1,97 +1,97 @@
+
 import glfw
 from OpenGL.GL import *
+from OpenGL.GLU import *
 import random
 import time
 
-try:
-    from PIL import Image
-except ImportError:
-    Image = None
-
 # --- 1. Maze Configuration ---
-R, C = 15, 20
-CELL_SIZE = 1.8 / max(R, C)
+R, C = 12, 16  # Slightly smaller for better 3D performance
+WALL_HEIGHT = 0.5
+CELL_SIZE = 1.0
 
 north_wall = [[1 for _ in range(C)] for _ in range(R)]
-east_wall = [[1 for _ in range(C)] for _ in range(R)] 
-left_wall = [1 for _ in range(R)] 
+east_wall = [[1 for _ in range(C)] for _ in range(R)]
+left_wall = [1 for _ in range(R)]
 
-PHASE = "GENERATING" 
+PHASE = "GENERATING"
 gen_stack = []
 gen_visited = [[0 for _ in range(C)] for _ in range(R)]
 
-# Define Openings
-start_r = random.randint(0, R-1)
-end_r = random.randint(0, R-1)
-start_node = (start_r, 0)
-end_node = (end_r, C-1)
+# Openings
+start_r, end_r = random.randint(0, R-1), random.randint(0, R-1)
+start_node, end_node = (start_r, 0), (end_r, C-1)
+left_wall[start_r] = 0
+east_wall[end_r][C-1] = 0
 
-# Opening the perimeter walls
-left_wall[start_r] = 0        
-east_wall[end_r][C-1] = 0     
-
-solver_stack = [start_node]
-path_stack = []
-dead_ends = []
+solver_stack, path_stack, dead_ends = [start_node], [], []
 visited_solver = [[False for _ in range(C)] for _ in range(R)]
+current_pos = (start_r, 0)
 
-# Start the mouse "outside" to show the opening
-current_pos = (start_r, -0.8) 
-mouse_angle = 0.0
-mouse_texture_id = None
+# --- 2. 3D Drawing Helpers ---
 
-# --- 2. Graphics Helpers ---
-def load_texture(filename):
-    if not Image: return None
-    try:
-        img = Image.open(filename)
-        img = img.transpose(Image.FLIP_TOP_BOTTOM)
-        img_data = img.convert("RGBA").tobytes()
-        width, height = img.size
-        tex_id = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, tex_id)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
-        return tex_id
-    except: return None
+def draw_cube(x, y, z, sx, sy, sz, color):
+    """Draws a 3D block at x,y,z with scale sx,sy,sz"""
+    glColor3f(*color)
+    glPushMatrix()
+    glTranslatef(x, y, z)
+    glScalef(sx, sy, sz)
+    
+    glBegin(GL_QUADS)
+    # Top
+    glVertex3f(1,1,-1); glVertex3f(-1,1,-1); glVertex3f(-1,1,1); glVertex3f(1,1,1)
+    # Bottom
+    glVertex3f(1,-1,1); glVertex3f(-1,-1,1); glVertex3f(-1,-1,-1); glVertex3f(1,-1,-1)
+    # Front
+    glVertex3f(1,1,1); glVertex3f(-1,1,1); glVertex3f(-1,-1,1); glVertex3f(1,-1,1)
+    # Back
+    glVertex3f(1,-1,-1); glVertex3f(-1,-1,-1); glVertex3f(-1,1,-1); glVertex3f(1,1,-1)
+    # Left
+    glVertex3f(-1,1,1); glVertex3f(-1,1,-1); glVertex3f(-1,-1,-1); glVertex3f(-1,-1,1)
+    # Right
+    glVertex3f(1,1,-1); glVertex3f(1,1,1); glVertex3f(1,-1,1); glVertex3f(1,-1,-1)
+    glEnd()
+    glPopMatrix()
 
-def draw_line(x1, y1, x2, y2):
-    glBegin(GL_LINES); glVertex2f(x1, y1); glVertex2f(x2, y2); glEnd()
+def draw_maze_3d():
+    """Renders the 2D wall data as 3D blocks"""
+    offset_x = -(C * CELL_SIZE) / 2
+    offset_z = -(R * CELL_SIZE) / 2
 
-def draw_cell_marker(r, c, color_rgb, size=8.0):
-    x = -0.9 + c * CELL_SIZE + (CELL_SIZE / 2.0)
-    y = 0.9 - r * CELL_SIZE - (CELL_SIZE / 2.0)
-    glColor3f(*color_rgb)
-    glPointSize(size)
-    glBegin(GL_POINTS); glVertex2f(x, y); glEnd()
+    for r in range(R):
+        for c in range(C):
+            x = offset_x + c * CELL_SIZE
+            z = offset_z + r * CELL_SIZE
+            
+            # North Walls
+            if north_wall[r][c]:
+                draw_cube(x + CELL_SIZE/2, WALL_HEIGHT/2, z, CELL_SIZE/2, WALL_HEIGHT/2, 0.05, (0.7, 0.7, 0.7))
+            # East Walls
+            if east_wall[r][c]:
+                draw_cube(x + CELL_SIZE, WALL_HEIGHT/2, z + CELL_SIZE/2, 0.05, WALL_HEIGHT/2, CELL_SIZE/2, (0.6, 0.6, 0.6))
+            # Left boundary
+            if c == 0 and left_wall[r]:
+                draw_cube(x, WALL_HEIGHT/2, z + CELL_SIZE/2, 0.05, WALL_HEIGHT/2, CELL_SIZE/2, (0.6, 0.6, 0.6))
+            # Bottom boundary
+            if r == R-1:
+                draw_cube(x + CELL_SIZE/2, WALL_HEIGHT/2, z + CELL_SIZE, CELL_SIZE/2, WALL_HEIGHT/2, 0.05, (0.7, 0.7, 0.7))
+    
+    # Floor
+    draw_cube(0, -0.05, 0, (C*CELL_SIZE)/2, 0.01, (R*CELL_SIZE)/2, (0.2, 0.2, 0.2))
 
-def draw_rat(r, c, texture_id, angle):
-    # Scale coordinates for smooth transition at exit
-    cx = -0.9 + c * CELL_SIZE + (CELL_SIZE / 2.0)
-    cy = 0.9 - r * CELL_SIZE - (CELL_SIZE / 2.0)
-    s = CELL_SIZE / 2.2
-    if texture_id:
-        glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, texture_id); glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        glColor3f(1, 1, 1); glPushMatrix(); glTranslatef(cx, cy, 0); glRotatef(angle, 0, 0, 1)
-        glBegin(GL_QUADS); glTexCoord2f(0,0); glVertex2f(-s,-s); glTexCoord2f(1,0); glVertex2f(s,-s); glTexCoord2f(1,1); glVertex2f(s,s); glTexCoord2f(0,1); glVertex2f(-s,s); glEnd()
-        glPopMatrix(); glDisable(GL_TEXTURE_2D)
-    else:
-        glColor3f(1, 1, 0); glPointSize(14.0); glBegin(GL_POINTS); glVertex2f(cx, cy); glEnd()
-
-# --- 3. Logic Functions ---
+# --- 3. Logic Functions (Same as 2D) ---
 def generate_step():
-    global PHASE, current_pos
-    if not gen_stack:
-        PHASE = "ADDING_CYCLES"; return
+    global PHASE
+    if not gen_stack: PHASE = "SOLVING"; return
     r, c = gen_stack[-1]
-    current_pos = (r, c)
-    candidates = []
-    if r > 0 and gen_visited[r-1][c] == 0: candidates.append((r-1, c))
-    if r < R-1 and gen_visited[r+1][c] == 0: candidates.append((r+1, c))
-    if c > 0 and gen_visited[r][c-1] == 0: candidates.append((r, c-1))
-    if c < C-1 and gen_visited[r][c+1] == 0: candidates.append((r, c+1))
-    if candidates:
-        nr, nc = random.choice(candidates)
+    gen_visited[r][c] = 1
+    cand = []
+    if r > 0 and not gen_visited[r-1][c]: cand.append((r-1, c))
+    if r < R-1 and not gen_visited[r+1][c]: cand.append((r+1, c))
+    if c > 0 and not gen_visited[r][c-1]: cand.append((r, c-1))
+    if c < C-1 and not gen_visited[r][c+1]: cand.append((r, c+1))
+    if cand:
+        nr, nc = random.choice(cand)
         if nr < r: north_wall[r][c] = 0
         elif nr > r: north_wall[nr][nc] = 0
         elif nc < c: east_wall[r][c-1] = 0
@@ -99,69 +99,65 @@ def generate_step():
         gen_visited[nr][nc] = 1; gen_stack.append((nr, nc))
     else: gen_stack.pop()
 
-def add_cycles():
-    global PHASE
-    for i in range(1, R-1):
-        for j in range(1, C-1):
-            if random.random() < 0.05:
-                if random.choice([True, False]): north_wall[i][j] = 0
-                else: east_wall[i][j] = 0
-    PHASE = "SOLVING"
-
 def solve_step():
-    global PHASE, current_pos, mouse_angle
+    global PHASE, current_pos
     if not solver_stack: return
     r, c = solver_stack[-1]
     current_pos = (r, c)
-    if (r, c) == end_node:
-        path_stack.append((r, c))
-        current_pos = (r, c + 1.2) # Mouse walks out of the maze
-        PHASE = "FINISHED"; return
+    if (r, c) == end_node: PHASE = "FINISHED"; return
     if not visited_solver[r][c]:
         visited_solver[r][c] = True; path_stack.append((r, c))
-    dirs = [(-1,0,90),(1,0,270),(0,1,0),(0,-1,180)]; random.shuffle(dirs)
+    dirs = [(-1,0),(1,0),(0,1),(0,-1)]; random.shuffle(dirs)
     moved = False
-    for dr, dc, angle in dirs:
-        nr, nc = r + dr, c + dc
+    for dr, dc in dirs:
+        nr, nc = r+dr, c+dc
         if 0 <= nr < R and 0 <= nc < C and not visited_solver[nr][nc]:
             wall = False
             if dr == -1 and north_wall[r][c]: wall = True
             elif dr == 1 and north_wall[nr][nc]: wall = True
             elif dc == 1 and east_wall[r][c]: wall = True
             elif dc == -1 and east_wall[r][c-1]: wall = True
-            if not wall:
-                solver_stack.append((nr, nc)); mouse_angle = angle; moved = True; break
+            if not wall: solver_stack.append((nr, nc)); moved = True; break
     if not moved: dead_ends.append(path_stack.pop()); solver_stack.pop()
 
 # --- 4. Main ---
 def main():
     if not glfw.init(): return
-    window = glfw.create_window(1000, 800, "Maze: Smooth Entry and Exit", None, None)
+    window = glfw.create_window(1000, 800, "3D Maze Runner", None, None)
     glfw.make_context_current(window)
-    global mouse_texture_id
-    mouse_texture_id = load_texture("rat.png")
-    gen_visited[start_node[0]][start_node[1]] = 1; gen_stack.append(start_node)
+    glEnable(GL_DEPTH_TEST) # CRITICAL FOR 3D
+
+    # Setup Perspective
+    glMatrixMode(GL_PROJECTION)
+    gluPerspective(45, 1000/800, 0.1, 100.0)
+    glMatrixMode(GL_MODELVIEW)
+
+    gen_stack.append((0,0))
+    angle = 0
 
     while not glfw.window_should_close(window):
-        glClear(GL_COLOR_BUFFER_BIT); glClearColor(0.1, 0.1, 0.1, 1.0)
-        glLineWidth(3.0); glColor3f(1, 1, 1)
-        for i in range(R):
-            for j in range(C):
-                x, y = -0.9 + j*CELL_SIZE, 0.9 - i*CELL_SIZE
-                if north_wall[i][j]: draw_line(x, y, x+CELL_SIZE, y)
-                if east_wall[i][j]: draw_line(x+CELL_SIZE, y, x+CELL_SIZE, y-CELL_SIZE)
-                if i == R-1: draw_line(x, y-CELL_SIZE, x+CELL_SIZE, y-CELL_SIZE)
-                if j == 0 and left_wall[i]: draw_line(x, y, x, y-CELL_SIZE)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glLoadIdentity()
+        
+        # Position Camera
+        # Look down from an angle
+        gluLookAt(0, 12, 12,  0, 0, 0,  0, 1, 0)
+        glRotatef(angle, 0, 1, 0) # Rotate maze for effect
+        angle += 0.2
 
-        # Draw solving paths (Small red dots)
-        for r, c in path_stack: draw_cell_marker(r, c, (1, 0, 0), 5.0)
-        for r, c in dead_ends: draw_cell_marker(r, c, (0, 0.5, 0.8), 5.0)
+        draw_maze_3d()
 
-        draw_rat(current_pos[0], current_pos[1], mouse_texture_id, mouse_angle)
+        # Draw "Rat" (Red Sphere/Cube) and Path
+        off_x, off_z = -(C*CELL_SIZE)/2, -(R*CELL_SIZE)/2
+        # Current Rat
+        draw_cube(off_x + current_pos[1]*CELL_SIZE + 0.5, 0.15, off_z + current_pos[0]*CELL_SIZE + 0.5, 0.2, 0.15, 0.2, (1, 0, 0))
+        
+        # Draw Solver Path
+        for pr, pc in path_stack:
+            draw_cube(off_x + pc*CELL_SIZE + 0.5, 0.02, off_z + pr*CELL_SIZE + 0.5, 0.1, 0.01, 0.1, (1, 1, 0))
 
         if PHASE == "GENERATING": generate_step(); time.sleep(0.01)
-        elif PHASE == "ADDING_CYCLES": add_cycles()
-        elif PHASE == "SOLVING": solve_step(); time.sleep(0.04)
+        elif PHASE == "SOLVING": solve_step(); time.sleep(0.05)
 
         glfw.swap_buffers(window); glfw.poll_events()
     glfw.terminate()
