@@ -54,3 +54,11 @@ Once the initial grid is set, the randomized Depth-First Search (DFS) algorithm 
 This image captures the maze after the generation is complete. You can see the distinct, winding corridors that have been "eaten" into the grid. Because we used a **Stack**, the resulting maze features long, complex paths rather than short, simple ones. At this stage, the maze is a "perfect tree," meaning there is exactly one way to get from any point to another (before the 5% cycle-creation addendum is applied).
 
 ![eaten wall](image-1.png)
+
+### 3. Autonomous Solving: Backtracking in Action
+Once generation is complete, the autonomous agent begins its search for the goal starting from the green pad. It utilizes a **Backtracking Algorithm** to navigate. As the agent explores, it leaves behind markers to visualize its logic:
+
+* **White Footprints:** Represent the agent's current active path (stored in the program's path stack).
+* **Blue Blocks:** Identify "dead ends". When the agent reaches a trapped state, it marks the cell in blue and "unwinds" the stack to return to the last valid intersection.
+
+![backtracking ](image-2.png)
