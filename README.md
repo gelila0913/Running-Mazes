@@ -38,3 +38,11 @@ To fulfill high-level assignment requirements, the following features were added
 * **White Markers:** The active "Best Guess" path
 * **Blue Blocks:** Identified Dead Ends (Backtracked paths)
 * **Gray Geometry:** 3D Walls generated from the matrix data
+
+## Initial Procedural State: The Closed Grid Matrix
+
+Before the randomized Depth-First Search algorithm begins "eating" walls, the entire maze is initialized as a closed system. This is a crucial first step in procedural generation, where every possible wall exists by default.
+
+This image visualizes that initial uniform grid state. Architecturally, this represents that the underlying `north_wall` and `east_wall` matrices are filled entirely with values of `1` (Wall Integrity intact). We also observe the predefined interior start position (green pad) and end position (gold pad), established just before the generation loop consumes the first wall.
+
+![closed grid](image.png)
