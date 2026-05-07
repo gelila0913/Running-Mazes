@@ -74,3 +74,8 @@ As the agent explores the maze, it leaves a real-time visual trail of its intern
 * **Dynamic Backtracking:** Upon hitting a dead end, the algorithm "unwinds" the stack. The agent moves backward through its footprints until it returns to the most recent intersection with an unexplored branch, ensuring a systematic and efficient search for the gold exit pad.
 
 ![finding the exit](image-3.png)
+
+## Developer Information
+**Developed by:** Gelila Sintayehu  
+**Section:** 2  
+**ID:** UGR/3508/16
