@@ -46,3 +46,11 @@ Before the randomized Depth-First Search algorithm begins "eating" walls, the en
 This image visualizes that initial uniform grid state. Architecturally, this represents that the underlying `north_wall` and `east_wall` matrices are filled entirely with values of `1` (Wall Integrity intact). We also observe the predefined interior start position (green pad) and end position (gold pad), established just before the generation loop consumes the first wall.
 
 ![closed grid](image.png)
+
+## The Generation Phase: "Eating" the Walls
+
+Once the initial grid is set, the randomized Depth-First Search (DFS) algorithm begins. This is the "Eating" phase where the program moves cell-by-cell, carving out a path by setting specific wall values in the matrix from `1` (wall) to `0` (path).
+
+This image captures the maze after the generation is complete. You can see the distinct, winding corridors that have been "eaten" into the grid. Because we used a **Stack**, the resulting maze features long, complex paths rather than short, simple ones. At this stage, the maze is a "perfect tree," meaning there is exactly one way to get from any point to another (before the 5% cycle-creation addendum is applied).
+
+![eaten wall](image-1.png)
