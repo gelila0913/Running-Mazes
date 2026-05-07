@@ -1,4 +1,4 @@
-# Assignment: 3D Procedural Maze Generation and Autonomous Navigation
+# 3D Procedural Maze Generation and Autonomous Navigation
 
 ## Project Title
 **Visualizing Backtracking Algorithms through 3D Simulation**
