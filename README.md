@@ -62,3 +62,15 @@ Once generation is complete, the autonomous agent begins its search for the goal
 * **Blue Blocks:** Identify "dead ends". When the agent reaches a trapped state, it marks the cell in blue and "unwinds" the stack to return to the last valid intersection.
 
 ![backtracking ](image-2.png)
+
+### 3. Autonomous Solving Phase: Logic & Navigation
+
+Once the procedural generation is complete, the autonomous agent (the red cube) begins its search for the goal starting from the green pad. This phase demonstrates the agent's ability to navigate a complex, non-linear environment using a **Backtracking Algorithm**.
+
+As the agent explores the maze, it leaves a real-time visual trail of its internal decision-making process:
+
+* **Active Path Exploration (White Footprints):** These markers represent the agent's current "best guess" or active path. They correspond directly to the nodes currently held in the program's path stack.
+* **Dead-End Identification (Blue Blocks):** When the agent encounters a trapped state—where all adjacent options are either walls or previously visited cells—it marks that cell in blue.
+* **Dynamic Backtracking:** Upon hitting a dead end, the algorithm "unwinds" the stack. The agent moves backward through its footprints until it returns to the most recent intersection with an unexplored branch, ensuring a systematic and efficient search for the gold exit pad.
+
+![finding the exit](image-3.png)
