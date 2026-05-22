@@ -2,6 +2,7 @@
 
 ## Project Title
 **Visualizing Backtracking Algorithms through 3D Simulation**
+Loom recording link: https://www.loom.com/share/26e5431797fa4d4b9f4136ba461c56d5
 
 ---
 
